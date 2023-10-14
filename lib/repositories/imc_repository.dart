@@ -1,5 +1,7 @@
 
 import 'package:dio_dart_flutter_calculadora_imc/model/imc.dart';
+import 'package:dio_dart_flutter_calculadora_imc/model/imc_classification.dart';
+import 'package:dio_dart_flutter_calculadora_imc/service/calculate_imc.dart';
 
 class IMCRepository {
   final List<IMC> _imcs = [];
@@ -9,10 +11,11 @@ class IMCRepository {
     _imcs.add(imc);
   }
 
-  Future<void> updateIMC(String id, double height, double weight) async {
+  Future<void> updateIMC(String id, double weight, double height) async {
     await Future.delayed(const Duration(milliseconds: 100));
-    _imcs.where((imc) => imc.id == id).first.height = height;
     _imcs.where((imc) => imc.id == id).first.weight = weight;
+    _imcs.where((imc) => imc.id == id).first.height = height;
+    _imcs.where((imc) => imc.id == id).first.classification = IMCClassification(CalculateIMC.calculateIMC(weight, height));
   }
 
   Future<void> removeIMC(String id) async {

@@ -1,6 +1,5 @@
 import 'package:dio_dart_flutter_calculadora_imc/model/imc.dart';
 import 'package:dio_dart_flutter_calculadora_imc/repositories/imc_repository.dart';
-import 'package:dio_dart_flutter_calculadora_imc/service/calculate_imc.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -19,6 +18,8 @@ class _HomePageState extends State<HomePage> {
   double _currentHeightSliderValue = 0;
 
   bool isSaving = false;
+  // bool isListExtended = false;
+  int checkedIndex = -1;
 
   void loadIMC() async {
     _imcs = await imcRepository.getIMCs();
@@ -27,7 +28,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     loadIMC();
   }
@@ -53,8 +53,31 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       var imc = _imcs[index];
                       return ListTile(
-                        title: Text(
-                            CalculateIMC.calculateIMC(imc).toStringAsFixed(2)),
+                        leading: Icon(imc.classification.icon,
+                            color: imc.classification.color),
+                        title: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(imc.classification.description,
+                                style: TextStyle(
+                                    color: imc.classification.color,
+                                    fontWeight: FontWeight.bold)),
+                            Text(imc.classification.value.toStringAsFixed(2),
+                                style: TextStyle(
+                                    color: imc.classification.color,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        subtitle: (checkedIndex == index) ? Text("data") : null,
+                        onTap: () {
+                          setState(() {
+                            if (checkedIndex == index) {
+                              checkedIndex = -1;
+                            } else {
+                              checkedIndex = index;
+                            }
+                          });
+                        },
                         trailing: PopupMenuButton(
                             onSelected: (value) {},
                             itemBuilder: (context) {
@@ -121,21 +144,21 @@ class _HomePageState extends State<HomePage> {
       builder: (context) {
         return AlertDialog(
           title: Text(title),
-          content: isRemoved ? _returnIMCRemoveWrap() : _returnIMCWrap(),
+          content: isRemoved ? _returnIMCRemoveWrap(imc) : _returnIMCWrap(),
           actions: _returnIMCActions(imc, isRemoved),
         );
       },
     );
   }
 
-  Widget _returnIMCRemoveWrap() {
+  Widget _returnIMCRemoveWrap(IMC? imc) {
     return StatefulBuilder(
       builder: (context, setState) {
         return Wrap(
           children: [
             Text("Peso (kg) ${_currentWeightSliderValue.toStringAsFixed(2)}"),
             Text("Altura (m) ${_currentHeightSliderValue.toStringAsFixed(2)}"),
-            Text("IMC:  ${CalculateIMC.calculateIMC(imc).toStringAsFixed(2)}"),
+            Text("IMC:  ${imc!.classification.value.toStringAsFixed(2)}"),
           ],
         );
       },
@@ -190,7 +213,6 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(8.0),
             child: TextButton(
               onPressed: () {
-                // debugPrint(IMCInfoWrap());
                 Navigator.pop(context);
               },
               child: const Text('Cancelar'),
@@ -252,7 +274,7 @@ class _HomePageState extends State<HomePage> {
           .addIMC(IMC(_currentWeightSliderValue, _currentHeightSliderValue));
     } else {
       await imcRepository.updateIMC(
-          imc.id, _currentHeightSliderValue, _currentWeightSliderValue);
+          imc.id, _currentWeightSliderValue, _currentHeightSliderValue);
     }
     Future.delayed(
       const Duration(milliseconds: 500),
