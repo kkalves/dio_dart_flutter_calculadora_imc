@@ -68,7 +68,12 @@ class _HomePageState extends State<HomePage> {
                                     fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        subtitle: (checkedIndex == index) ? Text("data") : null,
+                        subtitle: (checkedIndex == index)
+                            ? Text(
+                                "Peso: ${imc.weight.toStringAsFixed(2)}kg Altura: ${imc.height.toStringAsFixed(2)}",
+                                style: const TextStyle(color: Colors.blue),
+                              )
+                            : null,
                         onTap: () {
                           setState(() {
                             if (checkedIndex == index) {
@@ -89,8 +94,13 @@ class _HomePageState extends State<HomePage> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Editar"),
-                                      Icon(Icons.edit),
+                                      Text(
+                                        "Editar",
+                                        style: TextStyle(
+                                            color: Colors.amber,
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      Icon(Icons.edit, color: Colors.amber),
                                     ],
                                   ),
                                   onTap: () {
@@ -107,8 +117,13 @@ class _HomePageState extends State<HomePage> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text("Remover"),
-                                        Icon(Icons.delete),
+                                        Text(
+                                          "Remover",
+                                          style: TextStyle(
+                                              color: Colors.red,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        Icon(Icons.delete, color: Colors.red),
                                       ],
                                     ),
                                     onTap: () {
