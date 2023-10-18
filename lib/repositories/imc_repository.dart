@@ -1,30 +1,40 @@
-
-import 'package:dio_dart_flutter_calculadora_imc/model/imc.dart';
-import 'package:dio_dart_flutter_calculadora_imc/model/imc_classification.dart';
-import 'package:dio_dart_flutter_calculadora_imc/service/calculate_imc.dart';
+import 'package:dio_dart_flutter_calculadora_imc/model/imc_model.dart';
+import 'package:hive/hive.dart';
 
 class IMCRepository {
-  final List<IMC> _imcs = [];
+  static late Box _box;
 
-  Future<void> addIMC(IMC imc) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _imcs.add(imc);
+  IMCRepository._create();
+
+  static Future<IMCRepository> load() async {
+    if (Hive.isBoxOpen('imcModel')) {
+      _box = Hive.box('imcModel');
+    } else {
+      _box = await Hive.openBox('imcModel');
+    }
+    return IMCRepository._create();
   }
 
-  Future<void> updateIMC(String id, double weight, double height) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _imcs.where((imc) => imc.id == id).first.weight = weight;
-    _imcs.where((imc) => imc.id == id).first.height = height;
-    _imcs.where((imc) => imc.id == id).first.classification = IMCClassification(CalculateIMC.calculateIMC(weight, height));
+  void create(IMCModel imcModel) {
+    _box.add(imcModel);
   }
 
-  Future<void> removeIMC(String id) async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    _imcs.remove(_imcs.where((imc) => imc.id == id).first);
+  void update(IMCModel imcModel) {
+    imcModel.save();
   }
 
-  Future<List<IMC>> getIMCs() async {
-    await Future.delayed(const Duration(milliseconds: 100));
-    return _imcs;
+  void remove(IMCModel imcModel) {
+    imcModel.delete();
+  }
+
+  List<IMCModel> getIMCs() {
+    // if (isNotCompleted) {
+    //   return _box.values
+    //       .cast<TaskModel>()
+    //       .where((element) => !element.isCompleted)
+    //       .toList();
+    // } else {
+    return _box.values.cast<IMCModel>().toList();
+    // }
   }
 }

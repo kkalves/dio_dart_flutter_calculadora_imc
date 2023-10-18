@@ -1,5 +1,7 @@
-import 'package:dio_dart_flutter_calculadora_imc/model/imc.dart';
+import 'package:dio_dart_flutter_calculadora_imc/model/imc_classification.dart';
+import 'package:dio_dart_flutter_calculadora_imc/model/imc_model.dart';
 import 'package:dio_dart_flutter_calculadora_imc/repositories/imc_repository.dart';
+import 'package:dio_dart_flutter_calculadora_imc/service/calculate_imc.dart';
 import 'package:flutter/material.dart';
 
 class HomePage extends StatefulWidget {
@@ -10,9 +12,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  var imcRepository = IMCRepository();
-  var _imcs = <IMC>[];
-  var imc = IMC(0, 0);
+  late IMCRepository imcRepository;
+  var _imcs = <IMCModel>[];
 
   double _currentWeightSliderValue = 0;
   double _currentHeightSliderValue = 0;
@@ -22,7 +23,8 @@ class _HomePageState extends State<HomePage> {
   int checkedIndex = -1;
 
   void loadIMC() async {
-    _imcs = await imcRepository.getIMCs();
+    imcRepository = await IMCRepository.load();
+    _imcs = imcRepository.getIMCs();
     setState(() {});
   }
 
@@ -53,24 +55,27 @@ class _HomePageState extends State<HomePage> {
                     itemBuilder: (context, index) {
                       var imc = _imcs[index];
                       return ListTile(
-                        leading: Icon(imc.classification.icon,
-                            color: imc.classification.color),
+                        leading: Icon(
+                            IconData(imc.imcClassification!.icon,
+                                fontFamily: 'MaterialIcons'),
+                            color: Color(imc.imcClassification!.color)),
                         title: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(imc.classification.description,
+                            Text(imc.imcClassification!.description,
                                 style: TextStyle(
-                                    color: imc.classification.color,
+                                    color: Color(imc.imcClassification!.color),
                                     fontWeight: FontWeight.bold)),
-                            Text(imc.classification.value.toStringAsFixed(2),
+                            Text(
+                                imc.imcClassification!.value.toStringAsFixed(2),
                                 style: TextStyle(
-                                    color: imc.classification.color,
+                                    color: Color(imc.imcClassification!.color),
                                     fontWeight: FontWeight.bold)),
                           ],
                         ),
                         subtitle: (checkedIndex == index)
                             ? Text(
-                                "Peso: ${imc.weight.toStringAsFixed(2)}kg Altura: ${imc.height.toStringAsFixed(2)}",
+                                "Peso: ${imc.weight?.toStringAsFixed(2)}kg Altura: ${imc.height?.toStringAsFixed(2)}",
                                 style: const TextStyle(color: Colors.blue),
                               )
                             : null,
@@ -88,7 +93,7 @@ class _HomePageState extends State<HomePage> {
                             itemBuilder: (context) {
                               return [
                                 PopupMenuItem(
-                                  key: Key(imc.id),
+                                  key: Key(imc.id!),
                                   value: "update",
                                   child: const Row(
                                     mainAxisAlignment:
@@ -104,14 +109,14 @@ class _HomePageState extends State<HomePage> {
                                     ],
                                   ),
                                   onTap: () {
-                                    _currentWeightSliderValue = imc.weight;
-                                    _currentHeightSliderValue = imc.height;
+                                    _currentWeightSliderValue = imc.weight!;
+                                    _currentHeightSliderValue = imc.height!;
                                     _imcInfoDialog(
                                         context, "Editar IMC", imc, false);
                                   },
                                 ),
                                 PopupMenuItem(
-                                    key: Key(imc.id),
+                                    key: Key(imc.id!),
                                     value: "remove",
                                     child: const Row(
                                       mainAxisAlignment:
@@ -127,8 +132,8 @@ class _HomePageState extends State<HomePage> {
                                       ],
                                     ),
                                     onTap: () {
-                                      _currentWeightSliderValue = imc.weight;
-                                      _currentHeightSliderValue = imc.height;
+                                      _currentWeightSliderValue = imc.weight!;
+                                      _currentHeightSliderValue = imc.height!;
                                       _imcInfoDialog(
                                           context,
                                           "Deseja Realmente Remover esse IMC?",
@@ -153,27 +158,97 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  _imcInfoDialog(BuildContext context, String title, IMC? imc, bool isRemoved) {
+  _imcInfoDialog(
+      BuildContext context, String title, IMCModel? imc, bool isRemoved) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(title),
-          content: isRemoved ? _returnIMCRemoveWrap(imc) : _returnIMCWrap(),
+          content: isRemoved ? _returnIMCRemoveWrap(imc!) : _returnIMCWrap(),
           actions: _returnIMCActions(imc, isRemoved),
         );
       },
     );
   }
 
-  Widget _returnIMCRemoveWrap(IMC? imc) {
+  Widget _returnIMCRemoveWrap(IMCModel imc) {
     return StatefulBuilder(
       builder: (context, setState) {
         return Wrap(
           children: [
-            Text("Peso (kg) ${_currentWeightSliderValue.toStringAsFixed(2)}"),
-            Text("Altura (m) ${_currentHeightSliderValue.toStringAsFixed(2)}"),
-            Text("IMC:  ${imc!.classification.value.toStringAsFixed(2)}"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    Icon(
+                      IconData(
+                        imc.imcClassification!.icon,
+                        fontFamily: 'MaterialIcons',
+                      ),
+                      size: 50,
+                      color: Color(
+                        imc.imcClassification!.color,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(imc.imcClassification!.description,
+                            style: TextStyle(
+                                color: Color(imc.imcClassification!.color),
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text("IMC: ",
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w800)),
+                        Text(imc.imcClassification!.value.toStringAsFixed(2),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w800)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const Divider(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Column(
+                  children: [
+                    const Text(
+                      "Peso:",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
+                    Text("${_currentWeightSliderValue.toStringAsFixed(2)}kg",
+                        style: TextStyle(
+                            color: Color(imc.imcClassification!.color),
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+                Column(
+                  children: [
+                    const Text(
+                      "Altura:",
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                    ),
+                    Text("${_currentHeightSliderValue.toStringAsFixed(2)}m",
+                        style: TextStyle(
+                            color: Color(imc.imcClassification!.color),
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ],
+            )
           ],
         );
       },
@@ -219,7 +294,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  List<Widget> _returnIMCActions(IMC? imc, bool isRemoved) {
+  List<Widget> _returnIMCActions(IMCModel? imc, bool isRemoved) {
     return [
       Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -238,7 +313,7 @@ class _HomePageState extends State<HomePage> {
                   padding: const EdgeInsets.all(8.0),
                   child: FilledButton(
                     onPressed: () {
-                      _removeOnPressedAction(imc);
+                      _removeOnPressedAction(imc!);
                     },
                     child: const Text('Remover'),
                   ),
@@ -257,10 +332,7 @@ class _HomePageState extends State<HomePage> {
     ];
   }
 
-  _addOrUpdateOnPressAction(IMC? imc) async {
-    setState(() {
-      isSaving = false;
-    });
+  bool _isFieldsValid() {
     if (_currentWeightSliderValue == 0) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
@@ -269,7 +341,7 @@ class _HomePageState extends State<HomePage> {
             dismissDirection: DismissDirection.down,
             backgroundColor: Colors.red,
             content: Text("O valor de peso não pode ser 0.")));
-      return;
+      return false;
     } else if (_currentHeightSliderValue == 0) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
@@ -278,29 +350,39 @@ class _HomePageState extends State<HomePage> {
             dismissDirection: DismissDirection.down,
             backgroundColor: Colors.red,
             content: Text("O valor da altura não pode ser 0.")));
-      return;
+      return false;
+    } else {
+      return true;
     }
+  }
+
+  _addOrUpdateOnPressAction(IMCModel? imc) async {
     setState(() {
       isSaving = true;
     });
-
     if (imc == null) {
-      await imcRepository
-          .addIMC(IMC(_currentWeightSliderValue, _currentHeightSliderValue));
+      if (_isFieldsValid()) {
+        imcRepository.create(IMCModel.create(
+            _currentWeightSliderValue, _currentHeightSliderValue));
+      } else {
+        return;
+      }
     } else {
-      await imcRepository.updateIMC(
-          imc.id, _currentWeightSliderValue, _currentHeightSliderValue);
+      if (_isFieldsValid()) {
+        imc.weight = _currentWeightSliderValue;
+        imc.height = _currentHeightSliderValue;
+        imc.imcClassification = IMCClassification.createOrUpdate(
+            CalculateIMC.calculateIMC(
+                _currentWeightSliderValue, _currentHeightSliderValue));
+        imcRepository.update(imc);
+      } else {
+        return;
+      }
     }
-    Future.delayed(
-      const Duration(milliseconds: 500),
-      () {
-        setState(() {
-          isSaving = false;
-        });
-      },
-    );
-
-    if (!mounted) return;
+    loadIMC();
+    setState(() {
+      isSaving = false;
+    });
 
     Navigator.pop(context);
 
@@ -313,26 +395,16 @@ class _HomePageState extends State<HomePage> {
           content: Text("IMC Salvos com Sucesso!")));
   }
 
-  _removeOnPressedAction(IMC? imc) async {
+  _removeOnPressedAction(IMCModel imc) async {
     setState(() {
       isSaving = true;
     });
-    if (imc == null) {
-      return;
-    } else {
-      await imcRepository.removeIMC(imc.id);
-    }
 
-    Future.delayed(
-      const Duration(milliseconds: 300),
-      () {
-        setState(() {
-          isSaving = false;
-        });
-      },
-    );
-
-    if (!mounted) return;
+    imcRepository.remove(imc);
+    loadIMC();
+    setState(() {
+      isSaving = false;
+    });
 
     Navigator.pop(context);
 
